@@ -1,3 +1,5 @@
+'use strict';
+
 let axios = require('axios');
 let cheerio = require('cheerio');
 let fs = require('fs'); 
@@ -9,8 +11,6 @@ var filter = {
   maxPrice: '1600',
   minSqft: '550'
 }
-
-var listOfRentals = [];
 
 function getListOfRentals(totalLastSearch, listOfRentals){
   let url = `https://vancouver.craigslist.org/search/apa?availabilityMode=0&bundleDuplicates=1&hasPic=1&max_price=${filter.maxPrice}&minSqft=${filter.minSqft}&min_price=${filter.minPrice}&postal=${filter.postalCode}&s=${totalLastSearch}&search_distance=${filter.kmFromPostalCode}`;
@@ -42,8 +42,8 @@ function getListOfRentals(totalLastSearch, listOfRentals){
   });
 }
 
-getListOfRentals('0', listOfRentals);
+getListOfRentals('0', []);
 
 
 
-//module.exports = {test: listRentals};
+module.exports = {listOfRentals: getListOfRentals};
