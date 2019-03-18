@@ -18,9 +18,8 @@
   },
   "homepage": "https://github.com/KamyllaAlmeida/rent-listings-notifier#readme",
   "dependencies": {
+    "aws-sdk": "^2.422.0",
     "axios": "^0.18.0",
-    "cheerio": "^1.0.0-rc.2",
-    "craigslist-searcher": "^1.0.4",
-    "node-craigslist": "^2.0.0"
+    "cheerio": "^1.0.0-rc.2"
   }
 }

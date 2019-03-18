@@ -1,19 +1,22 @@
 'use strict';
 
-//import search from './craigslist-apartments';
-var { listOfRentals } =  require('./craigslist-apartments');
+var craigslistApartments = require('./craigslist-apartments');
+var filters = require('./filters');
+const Filter = new filters();
 
-
-module.exports.hello = async (event, context) => {
-  const response = await listOfRentals.getListOfRentals();
-
-  const testando = {
-    statusCode: 200,
-    body: JSON.stringify({ message: 'hello world' })
-  }
-  
-  return testando;
-  }; 
+module.exports.hello =   (event, context) => {
+  var apartmentsPromise = craigslistApartments.getListOfRentals('0',[]);
+  return apartmentsPromise.then((result) => {
+    return result;
+  })
+  .then((result) => {
+    const testando = {
+      statusCode: 200,
+      body: JSON.stringify({ message: result })
+    }
+    return testando;
+  })
+}; 
   
 
 

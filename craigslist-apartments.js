@@ -2,39 +2,52 @@
 
 let axios = require('axios');
 let cheerio = require('cheerio');
-let fs = require('fs'); 
+let filters = require('./filters');
 
-var filter = { 
-  postalCode:'v6b1s3',
-  kmFromPostalCode:'3',
-  minPrice: '1400',
-  maxPrice: '1600',
-  minSqft: '550'
+const Filter = new filters();
+let mountedURL = mountURL(Filter); 
+
+function mountURL(filter) {
+ let url = `https://vancouver.craigslist.org/search/apa?availabilityMode=0&bundleDuplicates=1&hasPic=1`;
+ if(filter.getMaxPrice()) {
+   url = url + `&max_price=${filter.getMaxPrice()}`;
+ }
+ if(filter.getMinPrice()) {
+   url = url + `&min_price=${filter.getMinPrice()}`; 
+ }
+ if(filter.getKmFromPostalCode()) {
+   url = url + `&search_distance=${filter.getKmFromPostalCode()}`; 
+ }
+ if(filter.getPostalCode()) {
+   url = url + `&postal=${filter.getPostalCode()}`; 
+ }
+ if(filter.getMinSqft()) {
+   url = url + `&minSqft=${filter.getMinSqft()}`; 
+ }
+ return url;
 }
 
-function getListOfRentals(totalLastSearch, listOfRentals){
-  let url = `https://vancouver.craigslist.org/search/apa?availabilityMode=0&bundleDuplicates=1&hasPic=1&max_price=${filter.maxPrice}&minSqft=${filter.minSqft}&min_price=${filter.minPrice}&postal=${filter.postalCode}&s=${totalLastSearch}&search_distance=${filter.kmFromPostalCode}`;
-  axios.get(url)
+function getListOfRentals(totalLastSearch, listOfRentals) {
+  let url = mountedURL + `&s=${totalLastSearch}`;
+  return axios.get(url)
   .then(function (response) {
     if(response.status === 200) {
       const html = response.data;
       const $ = cheerio.load(html);
       var totalRentals = $('.bottom').find('.totalcount').text();
-      $('.result-row').each(function(i, elem) {
+      var rangeTo = $('.bottom').find('.rangeTo').text();
+      $('.rows').children('li').each(function(i, elem) {
         listOfRentals.push({
-            id: $(this).attr('data-pid'),
-            title: $(this).find('.result-title').text(),
-            price: $(this).find('a .result-price').text(),
-            url: $(this).children('a').attr('href')
-          })
-          //console.log('* ', listOfRentals[i])      
+          id: $(this).attr('data-pid'),
+          title: $(this).find('.result-title').text(),
+          price: $(this).find('a .result-price').text(),
+          url: $(this).children('a').attr('href')
+        });
       });
-      if(listOfRentals.length >= parseInt(totalRentals, 10)) {
-        console.log(listOfRentals.length)
+      if(parseInt(rangeTo, 10) === parseInt(totalRentals, 10)) {
         return listOfRentals;
       }
-      return getHtmlCraigslist(listOfRentals.length, listOfRentals);
-      
+      return getListOfRentals(parseInt(rangeTo, 10), listOfRentals);
     }
   })
   .catch(function (error) {
@@ -42,8 +55,4 @@ function getListOfRentals(totalLastSearch, listOfRentals){
   });
 }
 
-getListOfRentals('0', []);
-
-
-
-module.exports = {listOfRentals: getListOfRentals};
+module.exports = {getListOfRentals};
