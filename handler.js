@@ -2,11 +2,13 @@
 
 var craigslistApartments = require('./craigslist-apartments');
 var filters = require('./filters');
-const Filter = new filters();
 
-module.exports.hello =   (event, context) => {
-  var apartmentsPromise = craigslistApartments.getListOfRentals('0',[]);
+module.exports.hello = (event, context) => {
+  const filter = new filters(event.filters.postalCode, event.filters.kmFromPostalCode, event.filters.minPrice, event.filters.maxPrice, event.filters.minSqft);
+  console.log("Filtro: ", filter)
+  var apartmentsPromise = craigslistApartments.getListOfRentals(filter);
   return apartmentsPromise.then((result) => {
+    console.log("Resultadoooooooooooooooooooooooooooo")
     return result;
   })
   .then((result) => {
@@ -16,11 +18,4 @@ module.exports.hello =   (event, context) => {
     }
     return testando;
   })
-}; 
-  
-
-
-
-
-
-
+};

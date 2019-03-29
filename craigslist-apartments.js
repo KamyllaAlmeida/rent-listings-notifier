@@ -2,33 +2,39 @@
 
 let axios = require('axios');
 let cheerio = require('cheerio');
-let filters = require('./filters');
-
-const Filter = new filters();
-let mountedURL = mountURL(Filter); 
+var filters = require('./filters');
 
 function mountURL(filter) {
+  console.log("Entrou mountURL")
  let url = `https://vancouver.craigslist.org/search/apa?availabilityMode=0&bundleDuplicates=1&hasPic=1`;
- if(filter.getMaxPrice()) {
-   url = url + `&max_price=${filter.getMaxPrice()}`;
+ if(filter.maxPrice) {
+   url = url + `&max_price=${filter.maxPrice}`;
  }
- if(filter.getMinPrice()) {
-   url = url + `&min_price=${filter.getMinPrice()}`; 
+ if(filter.minPrice) {
+   url = url + `&min_price=${filter.minPrice}`; 
  }
- if(filter.getKmFromPostalCode()) {
-   url = url + `&search_distance=${filter.getKmFromPostalCode()}`; 
+ if(filter.kmFromPostalCode) {
+   url = url + `&search_distance=${filter.kmFromPostalCode}`; 
  }
- if(filter.getPostalCode()) {
-   url = url + `&postal=${filter.getPostalCode()}`; 
+ if(filter.postalCode) {
+   url = url + `&postal=${filter.postalCode}`; 
  }
- if(filter.getMinSqft()) {
-   url = url + `&minSqft=${filter.getMinSqft()}`; 
+ if(filter.minSqft) {
+   url = url + `&minSqft=${filter.minSqft}`; 
  }
  return url;
 }
 
-function getListOfRentals(totalLastSearch, listOfRentals) {
-  let url = mountedURL + `&s=${totalLastSearch}`;
+function getListOfRentals(filter) {
+  console.log("Entrou getListOfRentals")
+  let mountedURL = mountURL(filter);
+  let listOfRentals = getListOfRentalsFromCraigslist (0, [], mountedURL); 
+  return listOfRentals;
+}
+
+function getListOfRentalsFromCraigslist(startIndex, listOfRentals, mountedURL) {
+  console.log("Entrou getListOfRentalsFromCraigslist")
+  let url = mountedURL + `&s=${startIndex}`;
   return axios.get(url)
   .then(function (response) {
     if(response.status === 200) {
