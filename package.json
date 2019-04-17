@@ -1,0 +1,25 @@
+{
+  "name": "rent-listings-notifier",
+  "version": "1.0.0",
+  "description": "",
+  "main": "handler.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KamyllaAlmeida/rent-listings-notifier.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/KamyllaAlmeida/rent-listings-notifier/issues"
+  },
+  "homepage": "https://github.com/KamyllaAlmeida/rent-listings-notifier#readme",
+  "dependencies": {
+    "aws-sdk": "^2.422.0",
+    "axios": "^0.18.0",
+    "cheerio": "^1.0.0-rc.2"
+  }
+}
