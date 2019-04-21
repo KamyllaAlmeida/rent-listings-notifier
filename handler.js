@@ -74,14 +74,14 @@ function storeInDB(ddb, apartmentListings) {
   };
   
   return ddb.putItem(params).promise()
-    .then((result) => {
-      console.log("Listings saved in DDB");
-      return apartmentListings;
-    })
-    .catch((err) => {
-      console.log("dynamodb err: ", err, err.stack); // an error occurred
-      throw err;
-    });
+  .then((result) => {
+    console.log("Listings saved in DDB");
+    return apartmentListings;
+  })
+  .catch((err) => {
+    console.log("dynamodb err: ", err, err.stack); // an error occurred
+    throw err;
+  });
 }
 
 function calculateYesterdayDate() {
