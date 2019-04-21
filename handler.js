@@ -5,12 +5,11 @@ var attr = require('dynamodb-data-types').AttributeValue;
 var craigslistApartments = require('./craigslist-apartments');
 var filters = require('./filters');
 
-
 var ddb = new AWS.DynamoDB({apiVersion: '2012-08-10'});
 
 module.exports.hello = (event, context) => {
   const filter = new filters(event.filters.postalCode, event.filters.kmFromPostalCode, event.filters.minPrice, event.filters.maxPrice, event.filters.minSqft);
-  var apartmentsPromise = craigslistApartments.getListOfRentals(filter);
+  var apartmentsPromise = craigslistApartments.getListings(filter);
   return apartmentsPromise.then((result) => {
     return result;
   })
@@ -28,48 +27,34 @@ module.exports.hello = (event, context) => {
         yesterdayListings: yesterdayListings
       }
       return apartmentListings;
-    })
-    
+    }) 
   })
   .then((apartmentListings) => {
-    var apartments = findNewApartments(apartmentListings);
-    var removed = findRemovedApartments(apartmentListings);
-    var message = createdMessage(apartments, removed);
+    var apartments = getSeparetedListings(apartmentListings);
+    var message = createdMessage(apartments);
     return sendEmail(message);
-  })
-  .then(() => {
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ message: "Lambda executed with success" })
-    }
   })
 }
 
-function findNewApartments(apartmentListings) {
+function getSeparetedListings(apartmentListings) {
   var apartments = {
-    newApartments: [],
-    oldApartments: []
+    new: [],
+    all: apartmentListings.todaysListings,
+    removed: []
   };
   apartmentListings.todaysListings.forEach(function(element) {
     var elementPos = apartmentListings.yesterdayListings.listings.map(function(x) {return x.id; }).indexOf(element.id); 
     if(elementPos === -1) {
-      apartments.newApartments.push(element);
-    } else {
-      apartments.oldApartments.push(element);
+      apartments.new.push(element);
     }
   });
-  return apartments;
-}
-
-function findRemovedApartments(apartmentListings) {
-  var removedApartments = [];
   apartmentListings.yesterdayListings.listings.forEach(function(element) {
     var elementPos = apartmentListings.todaysListings.map(function(x) {return x.id; }).indexOf(element.id); 
     if(elementPos === -1) {
-      removedApartments.push(element);
+      apartments.removed.push(element);
     } 
   });
-  return removedApartments;
+  return apartments;
 }
 
 function storeInDB(ddb, apartmentListings) {
@@ -84,7 +69,7 @@ function storeInDB(ddb, apartmentListings) {
   var dynamodbData = attr.wrap(data);
   
   var params = {
-    TableName: 'rentals1table',
+    TableName: process.env.tableName,
     Item: dynamodbData
   };
   
@@ -95,10 +80,9 @@ function storeInDB(ddb, apartmentListings) {
     })
     .catch((err) => {
       console.log("dynamodb err: ", err, err.stack); // an error occurred
-      throw err
+      throw err;
     });
 }
-
 
 function calculateYesterdayDate() {
   var date = new Date();
@@ -109,7 +93,7 @@ function calculateYesterdayDate() {
 function getYesterdaysListings(ddb) {
   var yesterday = calculateYesterdayDate();
   var params = {
-    TableName: 'rentals1table',
+    TableName: process.env.tableName,
     Key: {
       'site': {S: 'Craigslist'},
       'date': {S: yesterday}
@@ -117,13 +101,13 @@ function getYesterdaysListings(ddb) {
   };
 
   return ddb.getItem(params).promise()
-    .then((result) => {
-      return attr.unwrap(result.Item);
-    })
-    .catch((err) => {
-      console.log("dynamodb err: ", err, err.stack); // an error occurred
-      throw err
-    });
+  .then((result) => {
+    return attr.unwrap(result.Item);
+  })
+  .catch((err) => {
+    console.log("dynamodb err: ", err, err.stack); // an error occurred
+    throw err
+  });
 }
 
 function getFormattedDate(date) {
@@ -153,33 +137,33 @@ function sendEmail(message) {
     });
 }
 
-function createdMessage(apartments, removed) {
-  var message = `Hello,\n\nLook at the list of apartments we have selected for you today on Craigslist. \n\n`;
+function createdMessage(apartments) {
+  var message = `Hello,\n\nLook at the list of apartments on Craigslist we have selected for you today. \n\n`;
 
-  if(apartments.newApartments.length) {
-    var newItems = `${apartments.newApartments.length} new offers were found according to your filters. \n Offers added today: \n`;
-    apartments.newApartments.forEach(function(element) {
-      newItems += `  *  ${element.url} \n`;
+  if(apartments.new.length) {
+    var newItems = `${apartments.new.length} new offers were found according to your filters. \n###  Offers added today:  ###\n`;
+    apartments.new.forEach(function(element) {
+      newItems += `  *  ${element.title} - Price: ${element.price}\n   ${element.url}\n`;
     });
     message += newItems + '\n';
   } else {
     message += `Sorry, we did not find any new apartment for today. \n` + '\n';
   }
 
-  if(apartments.oldApartments.length) {
-    var avaiableItems = 'All offers avaiable: \n';
-    apartments.oldApartments.forEach(function(element) {
-      avaiableItems += `  *  ${element.url} \n`;
+  if(apartments.removed.length) {
+    var removedItems =  '###  Offers removed:  ###\n';
+    apartments.removed.forEach(function(element) {
+      removedItems += `  *  ${element.title} - Price: ${element.price}\n`;
+    });
+    message += removedItems + '\n';
+  } 
+
+  if(apartments.all.length) {
+    var avaiableItems = '###  All offers avaiable:  ###\n';
+    apartments.all.forEach(function(element) {
+      avaiableItems += `  *  ${element.title} - Price: ${element.price}\n   ${element.url}\n`;
     });
     message += avaiableItems + '\n';
   }
-  
-  if(removed.length) {
-    var removedItems =  'Offers removed:';
-    removed.forEach(function(element) {
-      removedItems += `  *  ${element.url} \n`;
-    });
-    message += removedItems;
-  } 
   return message;
 }

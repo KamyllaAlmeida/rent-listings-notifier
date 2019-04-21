@@ -22,7 +22,7 @@ provider:
       # Restrict our IAM role permissions to
       # the specific table for the stage
       Resource:
-        - "Fn::GetAtt": [ Rentals1Table, Arn ]
+        - "Fn::GetAtt": [ RentalsTable, Arn ]
     - Effect: Allow
       Action:
         - sns:Publish
@@ -34,7 +34,7 @@ custom:
   # commands. Or fallsback to what we have set in the provider section.
   stage: ${opt:stage, self:provider.stage}
   # Set the table name here so we can use it while testing locally
-  tableName: rentals1table
+  tableName: rentals
   # Set our DynamoDB throughput for prod and all other non-prod stages.
   tableThroughputs:
     prod: 5
@@ -63,7 +63,7 @@ resources:
         Type: AWS::Events::Rule
         Properties: 
           Description: "Triggers rentals Lambda"
-          ScheduleExpression: "rate(5 minutes)"
+          ScheduleExpression: "cron(0 23 * * ? *)"
           State: "ENABLED"
           Targets:
             - 

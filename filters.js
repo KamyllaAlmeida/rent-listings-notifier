@@ -8,11 +8,8 @@ class Filters {
     this.minPrice = minPrice;
     this.maxPrice = maxPrice;
     this.minSqft = minSqft;
-    
   }
 
-
-  
   getPostalCode() {
     return this.postalCode;
   }
@@ -32,11 +29,6 @@ class Filters {
   getMinSqft() {
     return this.minSqft;
   }
-
-}
-
-Filters.prototype.greet = function() {
-  return `${this.name} says hello.`;
 }
 
 module.exports = Filters;
