@@ -9,7 +9,7 @@ class Filters {
     this.maxPrice = maxPrice;
     this.minSqft = minSqft;
   }
-  
+
   getPostalCode() {
     return this.postalCode;
   }
@@ -29,7 +29,6 @@ class Filters {
   getMinSqft() {
     return this.minSqft;
   }
-
 }
 
 module.exports = Filters;

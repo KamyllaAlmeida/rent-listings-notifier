@@ -2,10 +2,8 @@
 
 let axios = require('axios');
 let cheerio = require('cheerio');
-var filters = require('./filters');
 
 function mountURL(filter) {
-  console.log("Entrou mountURL")
  let url = `https://vancouver.craigslist.org/search/apa?availabilityMode=0&bundleDuplicates=1&hasPic=1`;
  if(filter.maxPrice) {
    url = url + `&max_price=${filter.maxPrice}`;
@@ -25,15 +23,13 @@ function mountURL(filter) {
  return url;
 }
 
-function getListOfRentals(filter) {
-  console.log("Entrou getListOfRentals")
+function getListings(filter) {
   let mountedURL = mountURL(filter);
-  let listOfRentals = getListOfRentalsFromCraigslist (0, [], mountedURL); 
+  let listOfRentals = getCraigslistListings (0, [], mountedURL); 
   return listOfRentals;
 }
 
-function getListOfRentalsFromCraigslist(startIndex, listOfRentals, mountedURL) {
-  console.log("Entrou getListOfRentalsFromCraigslist")
+function getCraigslistListings(startIndex, listOfRentals, mountedURL) {
   let url = mountedURL + `&s=${startIndex}`;
   return axios.get(url)
   .then(function (response) {
@@ -46,19 +42,22 @@ function getListOfRentalsFromCraigslist(startIndex, listOfRentals, mountedURL) {
         listOfRentals.push({
           id: $(this).attr('data-pid'),
           title: $(this).find('.result-title').text(),
-          price: $(this).find('a .result-price').text(),
+          price: $(this).children('a').find('.result-price').text(),
           url: $(this).children('a').attr('href')
         });
       });
       if(parseInt(rangeTo, 10) === parseInt(totalRentals, 10)) {
         return listOfRentals;
       }
-      return getListOfRentals(parseInt(rangeTo, 10), listOfRentals);
+      return getCraigslistListings(parseInt(rangeTo, 10), listOfRentals, mountedURL);
+    } else {
+      throw new Error("Error");
     }
   })
   .catch(function (error) {
     console.log(error);
+    throw error;
   });
 }
 
-module.exports = {getListOfRentals};
+module.exports = {getListings};
