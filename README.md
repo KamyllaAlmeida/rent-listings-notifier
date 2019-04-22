@@ -47,4 +47,4 @@ Input: '{"filters": {
 
 To change the time the function will be executed, open the file serverless.yml and alter the value of "ScheduleExpression". More details on how to schedule CloudWatch events are available in https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html.
 
-In the same file serverless.yml is possible to change the Timezone, you have to change the value of the variable "timezone".
+In the same file serverless.yml it is possible to change the Timezone, you have to change the value of the variable "timezone" on line 9 (http://momentjs.com/timezone/).
