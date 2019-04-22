@@ -6,6 +6,7 @@ provider:
   runtime: nodejs8.10
   environment:
     tableName: ${self:custom.tableName}
+    timezone: 'America/Vancouver'
     topic: 
       Ref: MyTopic
 
@@ -63,7 +64,7 @@ resources:
         Type: AWS::Events::Rule
         Properties: 
           Description: "Triggers rentals Lambda"
-          ScheduleExpression: "cron(0 23 * * ? *)"
+          ScheduleExpression: "cron(0 4 * * ? *)"
           State: "ENABLED"
           Targets:
             - 

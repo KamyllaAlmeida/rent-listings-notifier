@@ -4,6 +4,7 @@ var AWS = require('aws-sdk');
 var attr = require('dynamodb-data-types').AttributeValue;
 var craigslistApartments = require('./craigslist-apartments');
 var filters = require('./filters');
+var moment = require('moment-timezone');
 
 var ddb = new AWS.DynamoDB({apiVersion: '2012-08-10'});
 
@@ -24,44 +25,38 @@ module.exports.hello = (event, context) => {
     .then((yesterdayListings) => {
       var apartmentListings = {
         todaysListings: todaysListings,
-        yesterdayListings: yesterdayListings
+        yesterdayListings: yesterdayListings.listings
       }
       return apartmentListings;
     }) 
   })
   .then((apartmentListings) => {
-    var apartments = getSeparetedListings(apartmentListings);
+    var apartments = {
+      new: getDifference(apartmentListings.todaysListings, apartmentListings.yesterdayListings),
+      all: apartmentListings.todaysListings,
+      removed: getDifference(apartmentListings.yesterdayListings, apartmentListings.todaysListings)
+    };
     var message = createdMessage(apartments);
     return sendEmail(message);
   })
 }
 
-function getSeparetedListings(apartmentListings) {
-  var apartments = {
-    new: [],
-    all: apartmentListings.todaysListings,
-    removed: []
-  };
-  apartmentListings.todaysListings.forEach(function(element) {
-    var elementPos = apartmentListings.yesterdayListings.listings.map(function(x) {return x.id; }).indexOf(element.id); 
+function getDifference(arrayA, arrayB) {
+  var difference = [];
+  arrayA.forEach(function(element) {
+    var elementPos = arrayB.map(function(x) {return x.id; }).indexOf(element.id); 
     if(elementPos === -1) {
-      apartments.new.push(element);
+      difference.push(element);
     }
   });
-  apartmentListings.yesterdayListings.listings.forEach(function(element) {
-    var elementPos = apartmentListings.todaysListings.map(function(x) {return x.id; }).indexOf(element.id); 
-    if(elementPos === -1) {
-      apartments.removed.push(element);
-    } 
-  });
-  return apartments;
+  return difference;
 }
 
 function storeInDB(ddb, apartmentListings) {
-  var today = new Date();
+  var today = moment().tz(process.env.timezone);
   var data = {
     site: 'Craigslist',
-    date: getFormattedDate(today),
+    date: today.format("YYYY[-]MM[-]DD"),
     listings: apartmentListings,
     updated: today.toString()
   }
@@ -84,14 +79,8 @@ function storeInDB(ddb, apartmentListings) {
   });
 }
 
-function calculateYesterdayDate() {
-  var date = new Date();
-  date.setDate(date.getDate() - 1);
-  return getFormattedDate(date);
-}
-
 function getYesterdaysListings(ddb) {
-  var yesterday = calculateYesterdayDate();
+  var yesterday = moment().tz(process.env.timezone).subtract(1, 'days').format("YYYY[-]MM[-]DD");
   var params = {
     TableName: process.env.tableName,
     Key: {
@@ -110,13 +99,6 @@ function getYesterdaysListings(ddb) {
   });
 }
 
-function getFormattedDate(date) {
-  var dd = String(date.getDate()).padStart(2, '0');
-  var mm = String(date.getMonth() + 1).padStart(2, '0'); //January is 0!
-  var yyyy = date.getFullYear();
-  return yyyy + '-' + mm + '-' +dd;
-}
-
 function sendEmail(message) {
   var params = {
     Message: message,
@@ -125,16 +107,15 @@ function sendEmail(message) {
   
   // Create promise and SNS service object
   var publishTextPromise = new AWS.SNS({apiVersion: '2010-03-31'}).publish(params).promise();
-  return publishTextPromise.then(
-    function(data) {
-      console.log("Message ${params.Message} send sent to the topic ${params.TopicArn}");
-      console.log("MessageID is " + data.MessageId);
-      return data.MessageId;
-    }).catch(
-      function(err) {
-        console.log("Entrou email promise");
-      console.error(err, err.stack);
-    });
+  return publishTextPromise
+  .then(function(data) {
+    console.log(`Message ${params.Message} sent to the topic ${params.TopicArn}`);
+    return data.MessageId;
+  })
+  .catch(function(err) {
+    console.error(err, err.stack);
+    throw err;
+  });
 }
 
 function createdMessage(apartments) {
@@ -159,11 +140,11 @@ function createdMessage(apartments) {
   } 
 
   if(apartments.all.length) {
-    var avaiableItems = '###  All offers avaiable:  ###\n';
+    var availableItems = '###  All offers available:  ###\n';
     apartments.all.forEach(function(element) {
-      avaiableItems += `  *  ${element.title} - Price: ${element.price}\n   ${element.url}\n`;
+      availableItems += `  *  ${element.title} - Price: ${element.price}\n   ${element.url}\n`;
     });
-    message += avaiableItems + '\n';
+    message += availableItems + '\n';
   }
   return message;
 }
